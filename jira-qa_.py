@@ -1,15 +1,10 @@
 import os
+import sys
 
 from datetime import datetime
 
 from jira import JIRA
-from flask import Flask, make_response
-from flask_cors import CORS
 
-app = Flask(__name__)
-CORS(app)
-
-sprint = '76'
 qa_column = 'In Testing'
 
 date_format = '%Y-%m-%dT%H:%M:%S.%f%z'
@@ -23,11 +18,16 @@ jira = JIRA(options, basic_auth=(user, token))
 
 
 def get_time_spent_in_qa(sprint):
+    """
+    Returns the time spent (in seconds) in the qa_column for each Jira issue
+    """
     issues = jira.search_issues(f'Sprint={sprint}', expand='changelog')
     result = {}
 
     for issue in issues:
         summary = issue.fields.summary
+        key = issue.key
+
         changelog = issue.changelog
 
         transitioned_to_testing = None
@@ -49,17 +49,18 @@ def get_time_spent_in_qa(sprint):
 
         time_spent_in_qa = transitioned_from_testing - transitioned_to_testing
 
-        result[summary] = time_spent_in_qa.total_seconds()
+        result[key] = {'summary': summary, 'time_in_qa': time_spent_in_qa.total_seconds()}
 
     return result
 
 
-@app.route('/qa-time/<sprint>')
-def qa_time(sprint):
-    result = get_time_spent_in_qa(sprint)
-    response = make_response(result, 200)
-    return response
-
-
 if __name__ == '__main__':
-    app.run()
+    results = get_time_spent_in_qa(sys.argv[1])
+    for k,v in results.items():
+        output = f"""
+        Key:                   {k}
+        Summary:               {v['summary']}
+        Time in QA (minutes):  {round(v['time_in_qa']/60, 2)}
+        ---
+        """
+        print(output)

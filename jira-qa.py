@@ -55,7 +55,13 @@ def get_time_spent_in_qa(sprint):
 
 
 if __name__ == '__main__':
-    results = get_time_spent_in_qa(sys.argv[1])
+    sprint_id = sys.argv[1]
+    if not sprint_id:
+        print("Sprint ID missing")
+        sys.exit()
+
+    print(f"Time spent in QA in sprint {sprint_id}")
+    results = get_time_spent_in_qa(sprint_id)
     for k,v in results.items():
         output = f"""
         Key:                   {k}
